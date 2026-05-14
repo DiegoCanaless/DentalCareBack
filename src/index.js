@@ -11,8 +11,15 @@ import { generalLimiter } from './middleware/rateLimiter.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    const allowed = origin === FRONTEND_URL || 
+                    origin === FRONTEND_URL.replace(/\/$/, '') ||
+                    !origin;
+    callback(null, allowed);
+  },
   credentials: true
 }));
 app.use(generalLimiter);
