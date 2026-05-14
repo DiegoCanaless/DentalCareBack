@@ -29,17 +29,17 @@ const setTokensInCookies = (res, accessToken, refreshToken) => {
   res.cookie('token', accessToken, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? 'none' : 'lax',
+    sameSite: 'lax',
     maxAge: 15 * 60 * 1000,
-    domain: isProduction ? '.onrender.com' : undefined
+    path: '/'
   });
   
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction ? 'none' : 'lax',
+    sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    domain: isProduction ? '.onrender.com' : undefined
+    path: '/'
   });
 };
 
