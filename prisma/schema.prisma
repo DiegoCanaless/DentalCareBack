@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int            @id @default(autoincrement())
+  name         String
+  email        String         @unique
+  password     String
+  role         String         @default("USER")
+  appointments Appointment[]
+  treatments   UserTreatment[]
+  createdAt    DateTime       @default(now())
+
+  @@map("users")
+}
+
+model Treatment {
+  id           Int            @id @default(autoincrement())
+  name         String
+  description  String
+  duration     Int
+  price        Decimal        @db.Decimal(10, 2)
+  icon         String
+  available    Boolean        @default(true)
+  appointments Appointment[]
+  dentists     UserTreatment[]
+  createdAt    DateTime       @default(now())
+
+  @@map("treatments")
+}
+
+model UserTreatment {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  treatmentId Int
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  treatment   Treatment @relation(fields: [treatmentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, treatmentId])
+  @@map("user_treatments")
+}
+
+model Appointment {
+  id          Int       @id @default(autoincrement())
+  date        DateTime  @db.Date
+  time        String
+  status      String    @default("PENDING")
+  userId      Int
+  treatmentId  Int
+  dentistId    Int?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  treatment   Treatment @relation(fields: [treatmentId], references: [id])
+  createdAt   DateTime  @default(now())
+
+  @@map("appointments")
+}
