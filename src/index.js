@@ -9,6 +9,7 @@ import statsRoutes from './routes/stats.js';
 import { generalLimiter } from './middleware/rateLimiter.js';
 
 const app = express();
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 3001;
 
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
