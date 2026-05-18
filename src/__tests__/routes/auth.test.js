@@ -1,6 +1,5 @@
 import request from 'supertest';
 import express from 'express';
-import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
 
 jest.mock('@prisma/client', () => {
@@ -18,7 +17,6 @@ import authRoutes from '../../routes/auth.js';
 
 const app = express();
 app.use(express.json());
-app.use(cookieParser());
 app.use('/api/auth', authRoutes);
 
 const JWT_SECRET = 'dentalcare-secret';
@@ -62,7 +60,7 @@ describe('Auth Routes', () => {
       expect(res.body.error).toBe('El email ya está registrado');
     });
 
-    it('should create user and return token on success', async () => {
+    it('should create user and return tokens on success', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.user.create.mockResolvedValue({
         id: 1,
@@ -80,7 +78,8 @@ describe('Auth Routes', () => {
         email: 'test@test.com',
         role: 'USER'
       }));
-      expect(res.headers['set-cookie']).toBeDefined();
+      expect(res.body.accessToken).toBeDefined();
+      expect(res.body.refreshToken).toBeDefined();
     });
   });
 
@@ -121,7 +120,7 @@ describe('Auth Routes', () => {
       expect(res.body.error).toBe('Credenciales inválidas');
     });
 
-    it('should return user and token on success', async () => {
+    it('should return user and tokens on success', async () => {
       const bcrypt = await import('bcryptjs');
       const hashedPassword = await bcrypt.hash('password123', 10);
       prisma.user.findUnique.mockResolvedValue({
@@ -141,12 +140,13 @@ describe('Auth Routes', () => {
         email: 'test@test.com',
         role: 'USER'
       }));
-      expect(res.headers['set-cookie']).toBeDefined();
+      expect(res.body.accessToken).toBeDefined();
+      expect(res.body.refreshToken).toBeDefined();
     });
   });
 
   describe('POST /api/auth/logout', () => {
-    it('should clear cookie and return message', async () => {
+    it('should return message', async () => {
       const res = await request(app).post('/api/auth/logout');
       expect(res.status).toBe(200);
       expect(res.body.message).toBe('Sesión cerrada');
@@ -169,7 +169,7 @@ describe('Auth Routes', () => {
       });
       const res = await request(app)
         .get('/api/auth/me')
-        .set('Cookie', `token=${token}`);
+        .set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(200);
       expect(res.body).toEqual(expect.objectContaining({
         id: 1,
@@ -184,7 +184,7 @@ describe('Auth Routes', () => {
       prisma.user.findUnique.mockResolvedValue(null);
       const res = await request(app)
         .get('/api/auth/me')
-        .set('Cookie', `token=${token}`);
+        .set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(404);
     });
   });

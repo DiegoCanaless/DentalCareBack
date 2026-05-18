@@ -1,6 +1,5 @@
 import request from 'supertest';
 import express from 'express';
-import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = 'dentalcare-secret';
@@ -19,9 +18,9 @@ import treatmentsRoutes from '../../routes/treatments.js';
 const createApp = () => {
   const app = express();
   app.use(express.json());
-  app.use(cookieParser());
   app.use((req, res, next) => {
-    const token = req.cookies?.token;
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
     if (token) {
       try {
         req.user = jwt.verify(token, JWT_SECRET);
@@ -62,7 +61,7 @@ describe('Treatments Routes', () => {
       const token = jwt.sign({ id: 1, role: 'USER' }, JWT_SECRET);
       const res = await request(app)
         .get('/api/treatments/all')
-        .set('Cookie', `token=${token}`);
+        .set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(403);
     });
 
@@ -70,7 +69,7 @@ describe('Treatments Routes', () => {
       const token = jwt.sign({ id: 1, role: 'SUPERADMIN' }, JWT_SECRET);
       const res = await request(app)
         .get('/api/treatments/all')
-        .set('Cookie', `token=${token}`);
+        .set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(200);
     });
   });
@@ -85,7 +84,7 @@ describe('Treatments Routes', () => {
       const token = jwt.sign({ id: 1, role: 'DENTIST' }, JWT_SECRET);
       const res = await request(app)
         .post('/api/treatments')
-        .set('Cookie', `token=${token}`)
+        .set('Authorization', `Bearer ${token}`)
         .send({ name: 'Test' });
       expect(res.status).toBe(403);
     });
@@ -101,7 +100,7 @@ describe('Treatments Routes', () => {
       const token = jwt.sign({ id: 1, role: 'USER' }, JWT_SECRET);
       const res = await request(app)
         .delete('/api/treatments/1')
-        .set('Cookie', `token=${token}`);
+        .set('Authorization', `Bearer ${token}`);
       expect(res.status).toBe(403);
     });
   });

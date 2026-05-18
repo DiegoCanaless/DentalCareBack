@@ -8,7 +8,7 @@ describe('Auth Middleware', () => {
 
   beforeEach(() => {
     mockReq = {
-      cookies: {}
+      headers: {}
     };
     mockRes = {
       status: jest.fn().mockReturnThis(),
@@ -26,16 +26,22 @@ describe('Auth Middleware', () => {
     });
 
     it('should return 401 if token is invalid', () => {
-      mockReq.cookies = { token: 'invalid-token' };
+      mockReq.headers = { authorization: 'Bearer invalid-token' };
       authenticate(mockReq, mockRes, mockNext);
       expect(mockRes.status).toHaveBeenCalledWith(401);
       expect(mockRes.json).toHaveBeenCalledWith({ error: 'Token inválido' });
       expect(mockNext).not.toHaveBeenCalled();
     });
 
+    it('should return 401 if authorization header has wrong format', () => {
+      mockReq.headers = { authorization: 'InvalidFormat token' };
+      authenticate(mockReq, mockRes, mockNext);
+      expect(mockRes.status).toHaveBeenCalledWith(401);
+    });
+
     it('should call next and set user if token is valid', () => {
       const token = jwt.sign({ id: 1, email: 'test@test.com', role: 'USER' }, 'dentalcare-secret');
-      mockReq.cookies = { token };
+      mockReq.headers = { authorization: `Bearer ${token}` };
       authenticate(mockReq, mockRes, mockNext);
       expect(mockNext).toHaveBeenCalled();
       expect(mockReq.user).toEqual(expect.objectContaining({

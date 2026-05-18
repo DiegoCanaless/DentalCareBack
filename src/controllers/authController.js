@@ -23,26 +23,6 @@ const generateTokens = (user) => {
   return { accessToken, refreshToken };
 };
 
-const setTokensInCookies = (res, accessToken, refreshToken) => {
-  const isProduction = process.env.NODE_ENV === 'production';
-  
-  res.cookie('token', accessToken, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
-    maxAge: 15 * 60 * 1000,
-    path: '/'
-  });
-  
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    path: '/'
-  });
-};
-
 export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -58,11 +38,10 @@ export const register = async (req, res) => {
     });
     
     const { accessToken, refreshToken } = generateTokens(user);
-    setTokensInCookies(res, accessToken, refreshToken);
     
     sendWelcomeEmail(user.email, user.name).catch(err => logger.error('Welcome email error:', err));
     
-    res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+    res.json({ id: user.id, name: user.name, email: user.email, role: user.role, accessToken, refreshToken });
   } catch (error) {
     logger.error('Register error:', error);
     res.status(500).json({ error: 'Error en el servidor' });
@@ -84,9 +63,8 @@ export const login = async (req, res) => {
     }
     
     const { accessToken, refreshToken } = generateTokens(user);
-    setTokensInCookies(res, accessToken, refreshToken);
     
-    res.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+    res.json({ id: user.id, name: user.name, email: user.email, role: user.role, accessToken, refreshToken });
   } catch (error) {
     logger.error('Login error:', error);
     res.status(500).json({ error: 'Error en el servidor' });
@@ -95,7 +73,8 @@ export const login = async (req, res) => {
 
 export const refreshToken = async (req, res) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
+    const authHeader = req.headers.authorization;
+    const refreshToken = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
     
     if (!refreshToken) {
       return res.status(401).json({ error: 'No hay token de refresh' });
@@ -117,9 +96,13 @@ export const refreshToken = async (req, res) => {
     }
     
     const tokens = generateTokens(user);
-    setTokensInCookies(res, tokens.accessToken, tokens.refreshToken);
     
-    res.json({ message: 'Token actualizado', user: { id: user.id, name: user.name, email: user.email, role: user.role } });
+    res.json({ 
+      message: 'Token actualizado', 
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken
+    });
   } catch (error) {
     logger.error('Refresh error:', error);
     res.status(401).json({ error: 'Token de refresh inválido o expirado' });
@@ -127,8 +110,6 @@ export const refreshToken = async (req, res) => {
 };
 
 export const logout = (req, res) => {
-  res.clearCookie('token');
-  res.clearCookie('refreshToken');
   res.json({ message: 'Sesión cerrada' });
 };
 
