@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { sendAppointmentConfirmedEmail } from '../lib/email.js';
 import logger from '../lib/logger.js';
+import { io } from '../index.js';
 
 const prisma = new PrismaClient();
 
@@ -131,6 +132,15 @@ export const createAppointment = async (req, res) => {
         treatment: true,
       }
     });
+
+    const dentist = appointment.dentistId 
+      ? await prisma.user.findUnique({ 
+          where: { id: appointment.dentistId }, 
+          select: { id: true, name: true } 
+        }) 
+      : null;
+
+    io.emit('appointment:created', { ...appointment, dentist });
     
     res.json(appointment);
   } catch (error) {
@@ -180,6 +190,8 @@ export const updateAppointment = async (req, res) => {
       ).catch(err => logger.error('Confirmation email error:', err));
     }
 
+    io.emit('appointment:updated', appointment);
+
     res.json(appointment);
   } catch (error) {
     logger.error('Error updating appointment:', error);
@@ -201,6 +213,9 @@ export const deleteAppointment = async (req, res) => {
       where: { id: parseInt(id) },
       data: { status: 'CANCELLED' }
     });
+    
+    io.emit('appointment:cancelled', { id: parseInt(id) });
+    
     res.json({ message: 'Cita cancelada' });
   } catch (error) {
     res.status(500).json({ error: 'Error en el servidor' });
