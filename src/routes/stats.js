@@ -27,6 +27,7 @@ router.get('/', authenticate, requireRole('SUPERADMIN'), async (req, res) => {
     const stats = {
       totalUsers: users.length,
       totalDentists: users.filter(u => u.role === 'DENTIST').length,
+      totalPatients: users.filter(u => u.role === 'USER').length,
       pendingAppointments: appointments.filter(a => a.status === 'PENDING').length,
       confirmedAppointments: appointments.filter(a => a.status === 'CONFIRMED').length,
       completedAppointments: appointments.filter(a => a.status === 'COMPLETED').length,

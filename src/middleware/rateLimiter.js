@@ -4,7 +4,7 @@ const isTest = process.env.NODE_ENV === 'test';
 
 export const authLimiter = isTest ? (req, res, next) => next() : rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 20,
   message: { error: 'Demasiados intentos. Intenta de nuevo en 15 minutos.' },
   standardHeaders: true,
   legacyHeaders: false,
